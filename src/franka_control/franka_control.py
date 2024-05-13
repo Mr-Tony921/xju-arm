@@ -14,8 +14,9 @@ HARD_JOINT_IMPEDANCE = [6000.0, 12000.0, 6000.0, 10000.0, 5000.0, 8000.0, 2000.0
 SOFT_JOINT_IMPEDANCE = [100.0, 100.0, 100.0, 100.0, 50.0, 50.0, 10.0]
 
 def main():
-    poses = np.load(TRAJECTORY_FILE)['poses']
-    grippers = np.load(TRAJECTORY_FILE)['grippers']
+    with np.load(TRAJECTORY_FILE) as trj:
+        poses = trj['poses']
+        grippers = trj['grippers']
 
     move_group = MoveGroup()
     # move_group.set_tolerance(joint=JOINT_TOLERANCE, position=POSITION_TOLERANCE)
