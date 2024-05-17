@@ -33,15 +33,15 @@ class MoveGroup:
         self.move_group.set_planning_pipeline_id("pilz_industrial_motion_planner")
 
         self.target_pose_publisher = rospy.Publisher("/move_group_custom/target_pose", PoseStamped, queue_size=20)
-        self.joint_impedance_srv = rospy.ServiceProxy(
-            '/franka_control/set_joint_impedance', SetJointImpedance)
-        self.load_controller_srv = rospy.ServiceProxy(
-            '/controller_manager/load_controller', LoadController)
-        self.switch_controller_srv = rospy.ServiceProxy('/controller_manager/switch_controller',
-                                                        SwitchController)
-        self.load_controller(POSITION_JOINT_TRAJECTORY_CONTROLLER_NAME)
-        self.switch_controller(start_controllers=[POSITION_JOINT_TRAJECTORY_CONTROLLER_NAME])
-        self.active_controller_name = POSITION_JOINT_TRAJECTORY_CONTROLLER_NAME
+        # self.joint_impedance_srv = rospy.ServiceProxy(
+        #     '/franka_control/set_joint_impedance', SetJointImpedance)
+        # self.load_controller_srv = rospy.ServiceProxy(
+        #     '/controller_manager/load_controller', LoadController)
+        # self.switch_controller_srv = rospy.ServiceProxy('/controller_manager/switch_controller',
+        #                                                 SwitchController)
+        # self.load_controller(POSITION_JOINT_TRAJECTORY_CONTROLLER_NAME)
+        # self.switch_controller(start_controllers=[POSITION_JOINT_TRAJECTORY_CONTROLLER_NAME])
+        # self.active_controller_name = POSITION_JOINT_TRAJECTORY_CONTROLLER_NAME
 
     def set_tolerance(self, joint : float = 0.0001, position: float = 0.0001, orientation: float = 0.001):
         self.goal_position_tolerance = position
@@ -67,6 +67,14 @@ class MoveGroup:
         """
         return self.move_group.get_current_pose()
 
+    def get_current_pose_in_list(self) -> list:
+        """
+        Return:
+            list object with (x, y, z, qw, qx, qy, qz)
+        """
+        pose = self.get_current_pose()
+        return self.pose2list(pose)
+
     def get_current_joints(self) -> list:
         """
         Return:
@@ -88,6 +96,17 @@ class MoveGroup:
             self.target_pose_publisher.publish(pose_goal)
         return pose_goal
 
+    def pose2list(self, pose: PoseStamped) -> list:
+        pose_goal = []
+        pose_goal.append(pose.pose.position.x)
+        pose_goal.append(pose.pose.position.y)
+        pose_goal.append(pose.pose.position.z)
+        pose_goal.append(pose.pose.orientation.w)
+        pose_goal.append(pose.pose.orientation.x)
+        pose_goal.append(pose.pose.orientation.y)
+        pose_goal.append(pose.pose.orientation.z)
+        return pose_goal
+
     def arm_interface(self, pose: list) -> any:
         pose_goal = self.list2pose(pose)
         return self.plan_and_execute_pose(pose=pose_goal, planner="PTP")
@@ -104,8 +123,7 @@ class MoveGroup:
             self.plan_and_execute_pose_with_gripper(pose=pose_goal, gripper=joint_val)
         else:
             self.plan_and_execute_pose(pose=pose_goal, planner="PTP")
-            joint_goal = self.get_current_joints()
-            joint_goal[0], joint_goal[1] = joint_val, joint_val
+            joint_goal = [joint_val, joint_val]
             self.plan_and_execute_grasp_joints(joints=joint_goal)
 
     def plan_and_execute_pose(self, pose: PoseStamped, planner: str = 'PTP') -> any:
@@ -128,6 +146,7 @@ class MoveGroup:
         """
         self.move_group.set_start_state_to_current_state()
         self.move_group.set_pose_target(pose)
+        self.set_planning_config()
         plan = self.move_group.plan()
         if not MoveGroup.plan_is_successful(plan):
             return
