@@ -53,6 +53,63 @@ def interpolate_trajectory(waypoints, steps):
     interp_rots = slerp(times)
     new_orientations = interp_rots.as_quat()
 
-    return [(new_positions[i][0], new_positions[i][1], new_positions[i][2],
-             new_orientations[i][3], new_orientations[i][0], new_orientations[i][1],
-             new_orientations[i][2]) for i in range(len(new_positions))]
+    return np.array(
+        [
+            (
+                new_positions[i][0],
+                new_positions[i][1],
+                new_positions[i][2],
+                new_orientations[i][3],
+                new_orientations[i][0],
+                new_orientations[i][1],
+                new_orientations[i][2],
+            )
+            for i in range(len(new_positions))
+        ]
+    )
+
+def plot_frame(ax, poses, color, length=0.01):
+    from scipy.spatial.transform import Rotation as R
+    for pose in poses:
+        mat = R.from_quat(pose[[4,5,6,3]]).as_dcm() # as_matrix() if scipy.__version__ >= 1.4.0
+        for i in range(3):
+            end = pose[:3] + length * mat[:,i]
+            ax.plot(
+                [pose[0], end[0]],
+                [pose[1], end[1]],
+                [pose[2], end[2]],
+                color=color
+            )
+
+def compare_trajectory(ori_poses, new_poses):
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.scatter(ori_poses[0,0], ori_poses[0,1], ori_poses[0,2], color='r', s=25)
+    ax.scatter(new_poses[0,0], new_poses[0,1], new_poses[0,2], color='g', s=25)
+    plot_frame(ax, ori_poses, 'r')
+    plot_frame(ax, new_poses, 'g')
+    for i in range(len(ori_poses)-1):
+        j = i + 1
+        ax.plot(
+            [ori_poses[i,0], ori_poses[j,0]],
+            [ori_poses[i,1], ori_poses[j,1]],
+            [ori_poses[i,2], ori_poses[j,2]],
+            color="r", label='Origin trajectory' if i == 0 else ''
+        )
+        ax.plot(
+            [new_poses[i,0], new_poses[j,0]],
+            [new_poses[i,1], new_poses[j,1]],
+            [new_poses[i,2], new_poses[j,2]],
+            color="g", label='New trajectory' if i == 0 else ''
+        )
+    ax.set_title("Base Field")
+    # ax.set_aspect('equal')
+    ax.legend()
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+
+    plt.show()
+    # plt.savefig(f'{DATA_FILE}.png')

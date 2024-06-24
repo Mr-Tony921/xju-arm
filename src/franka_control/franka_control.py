@@ -31,7 +31,10 @@ def main():
     from geometry_utils import interpolate_trajectory
     homo_poses = interpolate_trajectory(poses, len(poses))
 
-    move_group.trajectory_interface(homo_poses)
+    # move_group.trajectory_interface(homo_poses)
+
+    from geometry_utils import compare_trajectory
+    compare_trajectory(poses, homo_poses)
 
 if __name__ == "__main__":
     main()
