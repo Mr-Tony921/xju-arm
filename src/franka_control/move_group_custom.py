@@ -1,6 +1,7 @@
 from controller_manager_msgs.srv import LoadController, SwitchController
 from franka_msgs.srv import SetJointImpedance
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Pose
+from nav_msgs.msg import Path
 import moveit_commander
 import rospy
 import sys
@@ -126,6 +127,27 @@ class MoveGroup:
             joint_goal = [joint_val, joint_val]
             self.plan_and_execute_grasp_joints(joints=joint_goal)
 
+    def trajectory_interface(self, poses: list):
+        import copy
+        waypoints = []
+        waypoint = Pose()
+        path = Path()
+        path.header.frame_id = "panda_link0"
+        for pose in poses:
+            waypoint.position.x = float(pose[0])
+            waypoint.position.y = float(pose[1])
+            waypoint.position.z = float(pose[2])
+            waypoint.orientation.w = float(pose[3])
+            waypoint.orientation.x = float(pose[4])
+            waypoint.orientation.y = float(pose[5])
+            waypoint.orientation.z = float(pose[6])
+            waypoints.append(copy.deepcopy(waypoint))
+            pose = PoseStamped()
+            pose.header.frame_id = "panda_link0"
+            pose.pose = copy.deepcopy(waypoint)
+            path.poses.append(copy.deepcopy(pose))
+        return self.plan_and_execute_poses(poses=waypoints, planner="PTP")
+
     def plan_and_execute_pose(self, pose: PoseStamped, planner: str = 'PTP') -> any:
         """
         Plan the path from start state to goal state. These states
@@ -223,6 +245,19 @@ class MoveGroup:
             return
 
         self.move_group.stop()
+
+    def plan_and_execute_poses(self, poses: list, planner: str = 'PTP') -> any:
+        self.move_group.set_start_state_to_current_state()
+        (plan, fraction) = self.move_group.compute_cartesian_path(
+            poses, 0.01, 0.0, False
+        )
+
+        success = self.move_group.execute(plan, wait=True)
+        self.move_group.stop()
+        if not success:
+            return
+
+        self.current_pose = self.move_group.get_current_pose()
 
     def is_same_pose(self, pose_start, pose_goal):
         ...

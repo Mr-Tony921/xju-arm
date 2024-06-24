@@ -24,9 +24,11 @@ def main():
     print("GOTO READY JOINTS")
     move_group.plan_and_execute_joints(READY_rad)
 
-    for i, (pose, gripper) in enumerate(zip(poses, grippers)):
-        if i == len(poses) - 1 or i % STRIDE == 0:
-            move_group.combine_interface(pose=pose, gripper=gripper)
+    # for i, (pose, gripper) in enumerate(zip(poses, grippers)):
+    #     if i == len(poses) - 1 or i % STRIDE == 0:
+    #         move_group.combine_interface(pose=pose, gripper=gripper)
+
+    move_group.trajectory_interface(poses)
 
 if __name__ == "__main__":
     main()
