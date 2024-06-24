@@ -28,7 +28,10 @@ def main():
     #     if i == len(poses) - 1 or i % STRIDE == 0:
     #         move_group.combine_interface(pose=pose, gripper=gripper)
 
-    move_group.trajectory_interface(poses)
+    from geometry_utils import interpolate_trajectory
+    homo_poses = interpolate_trajectory(poses, len(poses))
+
+    move_group.trajectory_interface(homo_poses)
 
 if __name__ == "__main__":
     main()
